@@ -118,16 +118,18 @@ void loop() {
       Calculate PWM
     *******************************/
     if (currentTemp >= 30 && PWMEnabled ) {
-      PWMValue = map(currentTemp, 30, 60, 0, 255);
-      if (PWMValue > 255) {
-        PWMValue = 255;
-      }
+      PWMValue = map(currentTemp, 30, 60, minPWM / 100 * 255, 255);
+
       if (PWMValue < minPWM / 100 * 255) {
         PWMValue = minPWM / 100 * 255;
       }
-
+      
     } else {
       PWMValue = 0;
+    }
+
+    if (PWMValue > 255) {
+      PWMValue = 255;
     }
 
     Serial.print("PWM value: ");
@@ -167,7 +169,7 @@ void loop() {
       display.showNumber(PWMValue / 255 * 100, 0);
       showTemp = HIGH;
     }
-    
+
     lastFlipMillis = currentMillis;
   }
 }
