@@ -104,32 +104,40 @@ void loop() {
     Read temp
   *******************************/
   if (currentMillis - lastReadMillis >= readTempEvery) {
-    Serial.print(" Requesting temperatures...");
+    Serial.println();
+    Serial.print("--- Requesting temperatures...");
 
     sensors.requestTemperatures(); // Send the command to get temperature readings
     currentTemp = sensors.getTempCByIndex(0);
 
-    Serial.println("DONE");
+    Serial.println(" DONE");
     Serial.print("Temperature is: ");
-    Serial.print(currentTemp);
+    Serial.println(currentTemp);
 
     /*******************************
-      Calculat3e PWM
+      Calculate PWM
     *******************************/
     if (currentTemp >= 30 && PWMEnabled ) {
-      PWMValue = map(currentTemp, 30, 60, minPWM / 100 * 255, 255);
+      PWMValue = map(currentTemp, 30, 60, 0, 255);
+      if (PWMValue > 255) {
+        PWMValue = 255;
+      }
+      if (PWMValue < minPWM / 100 * 255) {
+        PWMValue = minPWM / 100 * 255;
+      }
 
     } else {
       PWMValue = 0;
-
-      Serial.print("PWM value: ");
-      Serial.print(PWMValue);
-      Serial.print("\t");
-      Serial.print(PWMValue / 255 * 100);
-      Serial.println("%");
-
-      lastReadMillis = currentMillis;
     }
+
+    Serial.print("PWM value: ");
+    Serial.print(PWMValue);
+    Serial.print("\t");
+    Serial.print(PWMValue / 255 * 100);
+    Serial.println("%");
+
+    lastReadMillis = currentMillis;
+
   }
 
   /*******************************
@@ -151,13 +159,15 @@ void loop() {
   *******************************/
   if (currentMillis - lastFlipMillis >= flipScreenEvery) {
     if (showTemp) {
-      Serial.println("Showing temp on screen...");
+      //Serial.println("Showing temp on screen...");
       display.showNumber(currentTemp, 0);
       showTemp = LOW;
     } else {
-      Serial.println("Showing PWM on screen...");
+      //Serial.println("Showing PWM on screen...");
       display.showNumber(PWMValue / 255 * 100, 0);
       showTemp = HIGH;
     }
+    
+    lastFlipMillis = currentMillis;
   }
 }
