@@ -14,7 +14,7 @@ String email = "jonsagebrand@gmail.com";
   TM1637 4 x 7-segment display
 *******************************/
 #include <Arduino.h>
-#include <TM1637TinyDisplay.h>
+#include <TM1637TinyDisplay.h> // https://github.com/jasonacox/TM1637TinyDisplay
 
 const int CLK = 8;
 const int DIO = 9;
@@ -43,6 +43,11 @@ float currentTemp = 0;
 const int pwmPin = 6; // pin that controls the MOSFET
 const int enablePin = 2; // enable this input to output PWM signal
 
+const int minPWM = 20;
+
+int PWMValue = 0;
+boolean PWMEnabled = LOW;
+
 
 /*******************************
   Variables
@@ -56,10 +61,6 @@ float currentMillis = 0;
 float lastReadMillis = 0;
 float lastFlipMillis = 0;
 
-const int minPWM = 40;
-
-int PWMValue = 0;
-boolean PWMEnabled = LOW;
 
 void setup() {
   /*******************************
@@ -104,38 +105,39 @@ void loop() {
     Read temp
   *******************************/
   if (currentMillis - lastReadMillis >= readTempEvery) {
-    Serial.println();
+    //Serial.println();
     Serial.print("--- Requesting temperatures...");
 
     sensors.requestTemperatures(); // Send the command to get temperature readings
     currentTemp = sensors.getTempCByIndex(0);
 
-    Serial.println(" DONE");
-    Serial.print("Temperature is: ");
-    Serial.println(currentTemp);
+    Serial.print(" DONE");
+    Serial.print(" \tTemperature is: ");
+    Serial.print(currentTemp);
 
     /*******************************
       Calculate PWM
     *******************************/
     if (currentTemp >= 30 && PWMEnabled ) {
-      PWMValue = map(currentTemp, 30, 60, minPWM / 100 * 255, 255);
+      PWMValue = map(currentTemp, 30, 60, minPWM * 255 / 100, 255);
 
-      if (PWMValue < minPWM / 100 * 255) {
-        PWMValue = minPWM / 100 * 255;
+      Serial.print("\t Calculated PWM value: ");
+      Serial.print(PWMValue);
+
+      if (PWMValue > 255) {
+        PWMValue = 255;
+      } else if (PWMValue < minPWM * 255 / 100 ) {
+        PWMValue = minPWM * 255 / 100;
       }
-      
+
     } else {
       PWMValue = 0;
     }
 
-    if (PWMValue > 255) {
-      PWMValue = 255;
-    }
-
-    Serial.print("PWM value: ");
+    Serial.print("\t PWM value: ");
     Serial.print(PWMValue);
-    Serial.print("\t");
-    Serial.print(PWMValue / 255 * 100);
+    Serial.print(" \t");
+    Serial.print(PWMValue * 100 / 255);
     Serial.println("%");
 
     lastReadMillis = currentMillis;
@@ -146,7 +148,7 @@ void loop() {
     Read inputs
   *******************************/
   PWMEnabled = digitalRead(enablePin);
-
+  analogWrite(pwmPin, PWMValue);
   /*******************************
     PWM
   *******************************/
@@ -161,12 +163,18 @@ void loop() {
   *******************************/
   if (currentMillis - lastFlipMillis >= flipScreenEvery) {
     if (showTemp) {
-      //Serial.println("Showing temp on screen...");
-      display.showNumber(currentTemp, 0);
+      display.showString("\xB0", 1, 3);
+      display.showNumber(int(currentTemp), false, 3, 0);
       showTemp = LOW;
     } else {
-      //Serial.println("Showing PWM on screen...");
-      display.showNumber(PWMValue / 255 * 100, 0);
+      
+      if (PWMEnabled) {
+        display.showString("F", 1, 3);
+        display.showNumber(PWMValue * 100 / 255, false, 3, 0);
+      } else {
+        display.showString(" nE ", 4, 0);
+      }
+      
       showTemp = HIGH;
     }
 
